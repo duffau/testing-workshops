@@ -1,0 +1,35 @@
+name: Build and Deploy
+on: [push]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2.3.1
+
+      - name: Cache pandoc built filters
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pandoc-cabal
+        with:
+          path: ~/.cabal
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/install-deps.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Install deps
+        run: .github/workflows/install-deps.sh
+
+      - name: Build slides 
+        run: |
+          make slides.html
+          for fp in $(find . -name .slides.html); do mv ${fp} ${fp%.slides.html}index.html ; done
+
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.5
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: .
